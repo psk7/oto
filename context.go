@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hajimehoshi/oto/internal/mux"
+	"github.com/psk7/oto/internal/mux"
 )
 
 // Context is the main object in Oto. It interacts with the audio drivers.

@@ -147,7 +147,7 @@ func waveOutOpen(f *waveformatex, devFilter *string) (uintptr, error) {
 	if devFilter != nil {
 		for i := 0; i < int(devNumCnt); i++ {
 			caps := waveoutcaps{}
-			procWaveOutGetDevCaps.Call(devNumCnt-1, uintptr(unsafe.Pointer(&caps)), unsafe.Sizeof(waveoutcaps{}))
+			procWaveOutGetDevCaps.Call(uintptr(i), uintptr(unsafe.Pointer(&caps)), unsafe.Sizeof(waveoutcaps{}))
 			ss := string(caps.szPname[:len(caps.szPname)])
 			if strings.Contains(ss, *devFilter) {
 				devNum = i

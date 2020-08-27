@@ -58,7 +58,7 @@ var errClosed = errors.New("closed")
 // of Player's Write calls, thus reducing CPU time. Smaller buffer enables more precise timing. The
 // longest delay between when samples were written and when they started playing is equal to the size
 // of the buffer.
-func NewContext(sampleRate, channelNum, bitDepthInBytes, bufferSizeInBytes int) (*Context, error) {
+func NewContext(sampleRate, channelNum, bitDepthInBytes, bufferSizeInBytes int, devFilter *string) (*Context, error) {
 	contextM.Lock()
 	defer contextM.Unlock()
 
@@ -66,7 +66,7 @@ func NewContext(sampleRate, channelNum, bitDepthInBytes, bufferSizeInBytes int) 
 		panic("oto: NewContext can be called only once")
 	}
 
-	d, err := newDriver(sampleRate, channelNum, bitDepthInBytes, bufferSizeInBytes)
+	d, err := newDriver(sampleRate, channelNum, bitDepthInBytes, bufferSizeInBytes, devFilter)
 	if err != nil {
 		return nil, err
 	}

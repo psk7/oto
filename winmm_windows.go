@@ -19,6 +19,7 @@ package oto
 import (
 	"fmt"
 	"runtime"
+	"strings"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -33,6 +34,8 @@ var (
 	procWaveOutClose         = winmm.NewProc("waveOutClose")
 	procWaveOutPrepareHeader = winmm.NewProc("waveOutPrepareHeader")
 	procWaveOutWrite         = winmm.NewProc("waveOutWrite")
+	procWaveOutGetNumDevs    = winmm.NewProc("waveOutGetNumDevs")
+	procWaveOutGetDevCaps    = winmm.NewProc("waveOutGetDevCapsA")
 )
 
 type wavehdr struct {
@@ -54,6 +57,17 @@ type waveformatex struct {
 	nBlockAlign     uint16
 	wBitsPerSample  uint16
 	cbSize          uint16
+}
+
+type waveoutcaps struct {
+	wMid           uint16
+	wPid           uint16
+	vDriverVersion uintptr
+	szPname        [24]byte
+	dwFormats      uint32
+	wChannels      uint16
+	wReserved1     uint16
+	dwSupport      uint32
 }
 
 const (
@@ -121,13 +135,29 @@ func (e *winmmError) Error() string {
 	return fmt.Sprintf("winmm error at %s", e.fname)
 }
 
-func waveOutOpen(f *waveformatex) (uintptr, error) {
+func waveOutOpen(f *waveformatex, devFilter *string) (uintptr, error) {
 	const (
 		waveMapper   = 0xffffffff
 		callbackNull = 0
 	)
+
+	devNumCnt, _, _ := procWaveOutGetNumDevs.Call()
+	devNum := waveMapper
+
+	if devFilter != nil {
+		for i := 0; i < int(devNumCnt); i++ {
+			caps := waveoutcaps{}
+			procWaveOutGetDevCaps.Call(devNumCnt-1, uintptr(unsafe.Pointer(&caps)), unsafe.Sizeof(waveoutcaps{}))
+			ss := string(caps.szPname[:len(caps.szPname)])
+			if strings.Contains(ss, *devFilter) {
+				devNum = i
+				break
+			}
+		}
+	}
+
 	var w uintptr
-	r, _, e := procWaveOutOpen.Call(uintptr(unsafe.Pointer(&w)), waveMapper, uintptr(unsafe.Pointer(f)),
+	r, _, e := procWaveOutOpen.Call(uintptr(unsafe.Pointer(&w)), uintptr(devNum), uintptr(unsafe.Pointer(f)),
 		0, 0, callbackNull)
 	runtime.KeepAlive(f)
 	if e.(windows.Errno) != 0 {
